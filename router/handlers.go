@@ -6,7 +6,12 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/Farmer-Pete/HokeyPoke/pokeclient"
+	"github.com/Farmer-Pete/HokeyPoke/dal"
+	"github.com/Farmer-Pete/HokeyPoke/dal/db/card"
+	"github.com/Farmer-Pete/HokeyPoke/dal/db/group"
+	"github.com/Farmer-Pete/HokeyPoke/dal/db/predicate"
+	"github.com/Farmer-Pete/HokeyPoke/dal/db/supertype"
+	"github.com/Farmer-Pete/HokeyPoke/dal/db/typ3"
 	"github.com/Farmer-Pete/HokeyPoke/util"
 	"github.com/gofiber/fiber/v2"
 	"github.com/k0kubun/pp/v3"
@@ -27,7 +32,7 @@ func toggleValue(slice []string, value string) []string {
 type pokemonQuery struct {
 	Categories []string `url:"categories"`
 	Types      []string `url:"types"`
-	Card       string   `url:"card"`
+	Group      string   `url:"group"`
 }
 
 func (pq *pokemonQuery) copy() *pokemonQuery {
@@ -61,9 +66,9 @@ func (ub urlBuilder) GetToggledTypeJSON(t string) string {
 	util.AssertNill(err)
 	return base64.StdEncoding.EncodeToString(result)
 }
-func (ub urlBuilder) GetCardJSON(card string) string {
+func (ub urlBuilder) GetGroupJSON(group string) string {
 	query := ub.Current.copy()
-	query.Card = card
+	query.Group = group
 	result, err := json.Marshal(query)
 	util.AssertNill(err)
 	return base64.StdEncoding.EncodeToString(result)
@@ -78,15 +83,70 @@ func home(ctx *fiber.Ctx) error {
 
 	pp.Println(query)
 
-	cards := pokeclient.GetCards(query.Categories, query.Types)
+	db, dbCtx := dal.GetConnection()
+	db = db.Debug()
+	categories := db.Supertype.Query().Select("name").StringsX(*dbCtx)
+	types := db.Typ3.Query().Select("name").StringsX(*dbCtx)
 
-	return ctx.Render("search", fiber.Map{
-		"Categories":         pokeclient.GetSuperTypes(),
-		"Types":              pokeclient.GetTypes(),
-		"Cards":              cards,
-		"SelectedCardName":   query.Card,
-		"SelectedCardImages": pokeclient.GetCardImages(query.Card),
-		"URL":                urlBuilder{query},
-		"Alphabet":           strings.Split("ABCDEFGHIJKLMNOPQRSTUVWXYZ", ""),
-	})
+	var cardPredicates []predicate.Card
+	var groupPredicates []predicate.Group
+
+	if len(query.Categories) > 0 {
+		cardPredicates = append(
+			cardPredicates,
+			card.HasSupertypeWith(supertype.NameIn(query.Categories...)),
+		)
+		groupPredicates = append(
+			groupPredicates,
+			group.HasSupertypeWith(supertype.NameIn(query.Categories...)),
+		)
+	}
+	if len(query.Types) > 0 {
+		cardPredicates = append(
+			cardPredicates,
+			card.HasTypesWith(typ3.NameIn(query.Types...)),
+		)
+		groupPredicates = append(
+			groupPredicates,
+			group.HasTypesWith(typ3.NameIn(query.Types...)),
+		)
+	}
+	if len(query.Group) > 0 {
+		cardPredicates = append(
+			cardPredicates,
+			card.HasGroupWith(group.Name(query.Group)),
+		)
+		groupPredicates = append(
+			groupPredicates,
+			group.NameEQ(query.Group),
+		)
+	}
+
+	filteredCards := db.Card.Query().
+		Where(cardPredicates...).
+		WithTypes().
+		AllX(*dbCtx)
+	filteredGroups := db.Group.Query().
+		Where(groupPredicates...).
+		WithTypes().
+		AllX(*dbCtx)
+
+	return ctx.Render(
+		"cards",
+		fiber.Map{
+			"Categories":     categories,
+			"Types":          types,
+			"FilteredCards":  filteredCards,
+			"FilteredGroups": filteredGroups,
+			"URL":            urlBuilder{query},
+			"Alphabet":       strings.Split("ABCDEFGHIJKLMNOPQRSTUVWXYZ", ""),
+			"Counts": struct {
+				Cards  int
+				Groups int
+			}{
+				Cards:  len(filteredCards),
+				Groups: len(filteredGroups),
+			},
+		},
+	)
 }

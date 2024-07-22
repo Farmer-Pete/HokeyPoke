@@ -1,2 +1,3 @@
 export HOKEY_POKEMONTCG_TOKEN=
 export HOKEY_LISTEN_ADDRESS=
+export HOKEY_DB_FILE=data/data.db

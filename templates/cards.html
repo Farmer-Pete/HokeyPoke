@@ -1,0 +1,135 @@
+{{template "template" .}}
+
+<!-- prettier-ignore -->
+{{define "text2icon"}}
+{{if eq . "Energy"}}fa-square-plus
+{{else if eq . "Pokémon"}}fa-circle-dot
+{{else if eq . "Trainer"}}fa-graduation-cap
+{{else if eq . "Colorless"}}fa-star
+{{else if eq . "Darkness"}}fa-moon
+{{else if eq . "Dragon"}}fa-dragon
+{{else if eq . "Fairy"}}fa-wand-sparkles
+{{else if eq . "Fighting"}}fa-hand-fist
+{{else if eq . "Fire"}}fa-fire
+{{else if eq . "Grass"}}fa-leaf
+{{else if eq . "Lightning"}}fa-bolt-lightning
+{{else if eq . "Metal"}}fa-gear
+{{else if eq . "Psychic"}}fa-cloud
+{{else if eq . "Water"}}fa-droplet
+{{end}}
+{{end}}
+
+{{define "title"}} Card Browser {{end}}
+
+{{define "content"}}
+
+<div class="section">
+    <h1 class="title">Filters</h1>
+    <h2 class="subtitle">
+        Use this to filter down the cards you're looking for
+    </h2>
+    <div class="field">
+        <label class="label">Category</label>
+        <div class="control">
+            {{range .Categories}}
+            <a
+                class="button {{if ($.URL.CategoryExists .)}}is-active is-primary{{end}}"
+                href="/?q={{$.URL.GetToggledCategoryJSON .}}"
+            >
+                <span>
+                    <i class="fa-solid {{template "text2icon" .}}"></i> {{.}}
+                </span>
+            </a>
+            {{end}}
+        </div>
+    </div>
+
+    <div class="type">
+        <label class="label">Type</label>
+        <div class="control">
+            {{range .Types}}
+            <a
+                class="button {{if ($.URL.TypeExists .)}}is-active is-primary{{end}}"
+                href="/?q={{$.URL.GetToggledTypeJSON .}}"
+            >
+                <span>
+                    <i class="fa-solid {{template "text2icon" .}}"></i> {{.}}
+                </span>
+            </a>
+            {{end}}
+        </div>
+    </div>
+</div>
+
+<div class="section">
+    <h1 class="title">Cards</h1>
+    <h2 class="subtitle">Currently viewing <b>{{.Counts.Cards}}</b> cards (and {{.Counts.Groups}} groups)</h2>
+    {{range $_, $letter := .Alphabet}}
+    <h3>{{$letter}}</h3>
+    <div class="buttons">
+        {{range $.FilteredGroups}} {{if (eq (slice .Name 0 1) $letter)}}
+        <a class="button" href="/?q={{$.URL.GetGroupJSON .Name}}">
+            <span>
+                {{range .Edges.Types}}
+                <i
+                    class="fa-solid {{template `text2icon` .Name}}"
+                    style="
+                    {{if ($.URL.TypeExists .Name)}}
+                        opacity: 0.5
+                    {{else}}
+                        opacity: 0.1
+                    {{end}}
+                    "
+                ></i>
+                {{end}} {{.Name}}
+            </span>
+        </a>
+        {{end}} {{end}}
+    </div>
+    {{end}}
+</div>
+
+{{if .URL.Current.Group}}
+<div class="modal is-active">
+    <div class="modal-background"></div>
+    <div class="modal-card" style="width: 100%">
+        <header class="modal-card-head">
+            <p class="modal-card-title">
+                {{.URL.Current.Group}}
+                {{range .FilteredGroups}}
+                    {{range .Edges.Types}}
+                        <i class="fa-solid {{template "text2icon" .Name}}"></i>
+                    {{end}}
+                {{end}}
+            </p>
+            <a
+                class="delete"
+                aria-label="close"
+                href='/?q={{.URL.GetGroupJSON ""}}'
+                }}
+            ></a>
+        </header>
+        <section class="modal-card-body">
+            <div class="grid is-col-min-10">
+                {{range .FilteredCards}}
+                <div class="cell">
+                    <figure class="image">
+                        <img src="{{.Metadata.Images.Large}}" />
+                    </figure>
+                </div>
+                {{end}}
+            </div>
+        </section>
+        <!-- --
+        <footer class="modal-card-foot">
+            <div class="buttons">
+                <button class="button is-success">Save changes</button>
+                <button class="button">Cancel</button>
+            </div>
+        </footer>
+        -->
+    </div>
+</div>
+<!-- prettier-ignore -->
+{{end}}
+{{end}}

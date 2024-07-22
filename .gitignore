@@ -1,3 +1,7 @@
+# Sensitive files
 .envrc
-cards.json
+
+# Generated files
 tmp/
+dal/db
+.task/checksum

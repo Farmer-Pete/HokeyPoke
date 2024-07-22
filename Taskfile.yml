@@ -1,0 +1,30 @@
+version: "3"
+
+interval: 500ms
+
+tasks:
+  default:
+    desc: List all tasks
+    cmds:
+      - task --list-all
+    silent: true
+
+  update:
+    desc: Update submodules
+    cmds:
+      - git submodule update --init --recursive
+
+  db:
+    desc: Generate the database schema
+    cmds:
+      - rm -frv dal/db
+      - go generate ./dal
+      - go run -mod=mod entgo.io/ent/cmd/ent describe ./dal/schema
+    sources:
+      - dal/schema/*.go
+      - dal/generate.go
+
+  start:
+    desc: Start the server
+    cmds:
+      - go run .
