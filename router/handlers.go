@@ -92,20 +92,12 @@ func home(ctx *fiber.Ctx) error {
 	var groupPredicates []predicate.Group
 
 	if len(query.Categories) > 0 {
-		cardPredicates = append(
-			cardPredicates,
-			card.HasSupertypeWith(supertype.NameIn(query.Categories...)),
-		)
 		groupPredicates = append(
 			groupPredicates,
 			group.HasSupertypeWith(supertype.NameIn(query.Categories...)),
 		)
 	}
 	if len(query.Types) > 0 {
-		cardPredicates = append(
-			cardPredicates,
-			card.HasTypesWith(typ3.NameIn(query.Types...)),
-		)
 		groupPredicates = append(
 			groupPredicates,
 			group.HasTypesWith(typ3.NameIn(query.Types...)),
@@ -140,13 +132,6 @@ func home(ctx *fiber.Ctx) error {
 			"FilteredGroups": filteredGroups,
 			"URL":            urlBuilder{query},
 			"Alphabet":       strings.Split("ABCDEFGHIJKLMNOPQRSTUVWXYZ", ""),
-			"Counts": struct {
-				Cards  int
-				Groups int
-			}{
-				Cards:  len(filteredCards),
-				Groups: len(filteredGroups),
-			},
 		},
 	)
 }

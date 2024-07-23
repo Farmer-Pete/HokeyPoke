@@ -63,7 +63,6 @@
 
 <div class="section">
     <h1 class="title">Cards</h1>
-    <h2 class="subtitle">Currently viewing <b>{{.Counts.Cards}}</b> cards (and {{.Counts.Groups}} groups)</h2>
     {{range $_, $letter := .Alphabet}}
     <h3>{{$letter}}</h3>
     <div class="buttons">
@@ -95,7 +94,7 @@
     <div class="modal-card" style="width: 100%">
         <header class="modal-card-head">
             <p class="modal-card-title">
-                {{.URL.Current.Group}}
+                {{.URL.Current.Group}} &nbsp;
                 {{range .FilteredGroups}}
                     {{range .Edges.Types}}
                         <i class="fa-solid {{template "text2icon" .Name}}"></i>
