@@ -6,13 +6,12 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/Farmer-Pete/HokeyPoke/dal"
-	"github.com/Farmer-Pete/HokeyPoke/dal/db/card"
-	"github.com/Farmer-Pete/HokeyPoke/dal/db/group"
-	"github.com/Farmer-Pete/HokeyPoke/dal/db/predicate"
-	"github.com/Farmer-Pete/HokeyPoke/dal/db/supertype"
-	"github.com/Farmer-Pete/HokeyPoke/dal/db/typ3"
+	"github.com/Farmer-Pete/HokeyPoke/data"
+	"github.com/Farmer-Pete/HokeyPoke/db"
+	"github.com/Farmer-Pete/HokeyPoke/db/query/model"
+	"github.com/Farmer-Pete/HokeyPoke/db/query/table"
 	"github.com/Farmer-Pete/HokeyPoke/util"
+	. "github.com/go-jet/jet/v2/sqlite"
 	"github.com/gofiber/fiber/v2"
 	"github.com/k0kubun/pp/v3"
 )
@@ -53,7 +52,7 @@ func (ub urlBuilder) GetToggledCategoryJSON(category string) string {
 	query := ub.Current.copy()
 	query.Categories = toggleValue(query.Categories, category)
 	result, err := json.Marshal(query)
-	util.AssertNill(err)
+	util.AssertNil(err)
 	return base64.StdEncoding.EncodeToString(result)
 }
 func (ub urlBuilder) TypeExists(t string) bool {
@@ -63,14 +62,14 @@ func (ub urlBuilder) GetToggledTypeJSON(t string) string {
 	query := ub.Current.copy()
 	query.Types = toggleValue(query.Types, t)
 	result, err := json.Marshal(query)
-	util.AssertNill(err)
+	util.AssertNil(err)
 	return base64.StdEncoding.EncodeToString(result)
 }
 func (ub urlBuilder) GetGroupJSON(group string) string {
 	query := ub.Current.copy()
 	query.Group = group
 	result, err := json.Marshal(query)
-	util.AssertNill(err)
+	util.AssertNil(err)
 	return base64.StdEncoding.EncodeToString(result)
 }
 
@@ -78,56 +77,118 @@ func home(ctx *fiber.Ctx) error {
 	var query pokemonQuery
 	qString := ctx.Queries()
 	qBytes, err := base64.StdEncoding.DecodeString(qString["q"])
-	util.AssertNill(err)
+	util.AssertNil(err)
 	json.Unmarshal(qBytes, &query)
 
 	pp.Println(query)
 
-	db, dbCtx := dal.GetConnection()
-	db = db.Debug()
-	categories := db.Supertype.Query().Select("name").StringsX(*dbCtx)
-	types := db.Typ3.Query().Select("name").StringsX(*dbCtx)
+	db := db.GetConnection()
 
-	var cardPredicates []predicate.Card
-	var groupPredicates []predicate.Group
+	var strCategories []string
+	util.AssertNil(
+		SELECT(table.Supertype.Name).
+			FROM(table.Supertype).
+			ORDER_BY(table.Supertype.Name).
+			Query(db, &strCategories))
 
-	if len(query.Categories) > 0 {
-		groupPredicates = append(
-			groupPredicates,
-			group.HasSupertypeWith(supertype.NameIn(query.Categories...)),
-		)
-	}
-	if len(query.Types) > 0 {
-		groupPredicates = append(
-			groupPredicates,
-			group.HasTypesWith(typ3.NameIn(query.Types...)),
-		)
-	}
-	if len(query.Group) > 0 {
-		cardPredicates = append(
-			cardPredicates,
-			card.HasGroupWith(group.Name(query.Group)),
-		)
-		groupPredicates = append(
-			groupPredicates,
-			group.NameEQ(query.Group),
-		)
+	var strTypes []string
+	util.AssertNil(
+		SELECT(table.Type.Name).
+			FROM(table.Type).
+			ORDER_BY(table.Type.Name).
+			Query(db, &strTypes))
+
+	type Group struct {
+		model.Group
+		Types []model.Type
 	}
 
-	filteredCards := db.Card.Query().
-		Where(cardPredicates...).
-		WithTypes().
-		AllX(*dbCtx)
-	filteredGroups := db.Group.Query().
-		Where(groupPredicates...).
-		WithTypes().
-		AllX(*dbCtx)
+	filteredGroups := func() []Group {
+
+		stmt := SELECT(
+			table.Group.AllColumns,
+			table.GroupType.AllColumns,
+			table.Type.AllColumns,
+			table.Supertype.AllColumns).
+			FROM(
+				table.Group.
+					LEFT_JOIN(table.GroupType, table.GroupType.GroupID.EQ(table.Group.ID)).
+					LEFT_JOIN(table.Type, table.Type.ID.EQ(table.GroupType.TypeID)).
+					INNER_JOIN(table.Supertype, table.Supertype.ID.EQ(table.Group.SupertypeID)),
+			)
+
+		groupFilterStatement := Bool(true)
+
+		if len(query.Categories) > 0 {
+			sqlCategories := []Expression{}
+			for _, category := range query.Categories {
+				sqlCategories = append(sqlCategories, String(category))
+			}
+			groupFilterStatement = groupFilterStatement.AND(table.Supertype.Name.IN(sqlCategories...))
+		}
+
+		if len(query.Types) > 0 {
+			sqlTypes := []Expression{}
+			for _, typ := range query.Types {
+				sqlTypes = append(sqlTypes, String(typ))
+			}
+			groupFilterStatement = groupFilterStatement.AND(
+				table.Group.ID.IN(
+					SELECT(table.GroupType.GroupID).
+						FROM(table.GroupType.INNER_JOIN(table.Type, table.Type.ID.EQ(table.GroupType.TypeID))).
+						WHERE(table.Type.Name.IN(sqlTypes...)),
+				),
+			)
+		}
+
+		if len(query.Group) > 0 {
+			groupFilterStatement = groupFilterStatement.AND(table.Group.Name.EQ(String(query.Group)))
+		}
+
+		stmt = stmt.WHERE(groupFilterStatement)
+
+		result := []Group{}
+		print(stmt.DebugSql())
+		util.AssertNil(stmt.Query(db, &result))
+
+		return result
+	}()
+
+	type Card struct {
+		model.Card
+		MetadataObj data.CardMetadata
+	}
+
+	filteredCards := func() []Card {
+		stmt := SELECT(table.Card.AllColumns).
+			FROM(table.Card).
+			WHERE(table.Card.GroupID.IN(
+				SELECT(table.Group.ID).
+					FROM(table.Group).
+					WHERE(table.Group.Name.EQ(String(query.Group))),
+			))
+
+		cards := []model.Card{}
+		util.AssertNil(stmt.Query(db, &cards))
+
+		result := []Card{}
+		for idx := range cards {
+			var metadataObj data.CardMetadata
+			util.AssertNil(
+				json.Unmarshal([]byte(*cards[idx].Metadata), &metadataObj),
+			)
+			card := Card{cards[idx], metadataObj}
+			result = append(result, card)
+		}
+
+		return result
+	}()
 
 	return ctx.Render(
 		"cards",
 		fiber.Map{
-			"Categories":     categories,
-			"Types":          types,
+			"Categories":     strCategories,
+			"Types":          strTypes,
 			"FilteredCards":  filteredCards,
 			"FilteredGroups": filteredGroups,
 			"URL":            urlBuilder{query},

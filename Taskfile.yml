@@ -15,14 +15,12 @@ tasks:
       - git submodule update --init --recursive
 
   db:
-    desc: Generate the database schema
+    desc: Apply database migrations
     cmds:
-      - rm -frv dal/db
-      - go generate ./dal
-      - go run -mod=mod entgo.io/ent/cmd/ent describe ./dal/schema
+      - goose up
+      - jet -source=sqlite -dsn="$HOKEY_DB_FILE" -path=db/query
     sources:
-      - dal/schema/*.go
-      - dal/generate.go
+      - db/migrations/*.sql
 
   start:
     desc: Start the server

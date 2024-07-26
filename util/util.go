@@ -17,16 +17,20 @@ func isNil(value interface{}) bool {
 	return false
 }
 
-func AssertNotNill(value interface{}, error interface{}) {
+func AssertNotNil(value interface{}, error interface{}) {
 	if isNil(value) {
 		print(value, value, value)
 		panic(error)
 	}
 }
 
-func AssertNill(value interface{}) {
+func AssertNil(value interface{}, message ...string) {
 	if !isNil(value) {
-		panic(value)
+		if len(message) > 0 {
+			panic(fmt.Sprintf("%s: %s", message[0], value))
+		} else {
+			panic(value)
+		}
 	}
 }
 
