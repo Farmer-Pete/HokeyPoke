@@ -18,7 +18,7 @@ func NormalizeName(card CardMetadata) string {
 	)
 
 	junk := []string{
-		"ALOLAN", "BREAK", "GALARIAN", "HISUIAN",
+		"ALOLAN", "BREAK", "GALARIAN", "HISUIAN", "PALDEAN",
 		"RADIANT", "SHINING", "TEAM", "UNOWN",
 		"LEGEND", "UNION", "DARK", "LIGHT",
 		"V", "VMAX", "VSTAR", "C",
@@ -28,7 +28,12 @@ func NormalizeName(card CardMetadata) string {
 	good := []string{}
 
 	for _, part := range parts {
-		if !slices.Contains(junk, part) && !slices.Contains(junk, strings.ToUpper(part)) && !strings.Contains(part, `'s`) {
+		if !slices.Contains(junk, part) &&
+			!slices.Contains(junk, strings.ToUpper(part)) &&
+			!strings.Contains(part, `'s`) &&
+			!strings.Contains(part, `(`) &&
+			!strings.Contains(part, `)`) {
+
 			good = append(good, part)
 		}
 	}

@@ -22,6 +22,11 @@ tasks:
     sources:
       - db/migrations/*.sql
 
+  db.backup:
+    desc: Backup the database
+    cmds:
+      - cp "$HOKEY_DB_FILE" "$HOKEY_DB_FILE.$(date -Iseconds)"
+
   start:
     desc: Start the server
     cmds:

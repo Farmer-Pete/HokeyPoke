@@ -215,7 +215,7 @@ func home(ctx *fiber.Ctx) error {
 			groupFilterStatement = groupFilterStatement.AND(table.CardCollection.Count.GT(Int(0)))
 		}
 
-		stmt = stmt.WHERE(groupFilterStatement)
+		stmt = stmt.WHERE(groupFilterStatement).ORDER_BY(table.Group.Name)
 
 		groups := []ModelGroup{}
 		util.AssertNil(stmt.Query(db, &groups), stmt.DebugSql())

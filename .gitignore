@@ -1,6 +1,7 @@
 # Sensitive files
 .envrc
 data/data.db
+data/data.db.*
 
 # Generated files
 tmp/

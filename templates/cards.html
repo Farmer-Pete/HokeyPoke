@@ -129,7 +129,7 @@
                     <figure class="image" id="{{.PtcgID}}">
                         {{if gt .CardCollectionCount 0}}
                         <div class="tags has-addons" style="position: absolute; right: -5px; top: -5px;">
-                            <span class="tag is-primary is-medium">In Deck</span>
+                            <span class="tag is-primary is-medium">In Collection</span>
                             <a href="/?q={{$.CurrentURL}}&action=increment&card_PtcgID={{.PtcgID}}&requestID={{$.RequestID}}#{{.PtcgID}}" class="tag is-primary is-light is-medium">{{.CardCollectionCount}}</a>
                         </div>
                         {{end}}
