@@ -1,28 +1,29 @@
+<!-- prettier-ignore -->
 {{template "template" .}}
 
-<!-- prettier-ignore -->
 {{define "text2icon"}}
-{{if eq . "Energy"}}fa-square-plus
-{{else if eq . "Pokémon"}}fa-circle-dot
-{{else if eq . "Trainer"}}fa-graduation-cap
-{{else if eq . "Colorless"}}fa-star
-{{else if eq . "Darkness"}}fa-moon
-{{else if eq . "Dragon"}}fa-dragon
-{{else if eq . "Fairy"}}fa-wand-sparkles
-{{else if eq . "Fighting"}}fa-hand-fist
-{{else if eq . "Fire"}}fa-fire
-{{else if eq . "Grass"}}fa-leaf
-{{else if eq . "Lightning"}}fa-bolt-lightning
-{{else if eq . "Metal"}}fa-gear
-{{else if eq . "Psychic"}}fa-cloud
-{{else if eq . "Water"}}fa-droplet
-{{end}}
+    {{if eq . "Energy"}}fa-square-plus
+    {{else if eq . "Pokémon"}}fa-circle-dot
+    {{else if eq . "Trainer"}}fa-graduation-cap
+    {{else if eq . "Colorless"}}fa-star
+    {{else if eq . "Darkness"}}fa-moon
+    {{else if eq . "Dragon"}}fa-dragon
+    {{else if eq . "Fairy"}}fa-wand-sparkles
+    {{else if eq . "Fighting"}}fa-hand-fist
+    {{else if eq . "Fire"}}fa-fire
+    {{else if eq . "Grass"}}fa-leaf
+    {{else if eq . "Lightning"}}fa-bolt-lightning
+    {{else if eq . "Metal"}}fa-gear
+    {{else if eq . "Psychic"}}fa-cloud
+    {{else if eq . "Water"}}fa-droplet
+    {{end}}
 {{end}}
 
 {{define "title"}} Card Browser {{end}}
 
 {{define "content"}}
 
+{{if not .URL.Current.Group}}
 <div class="section">
     <h1 class="title">Filters</h1>
     <h2 class="subtitle">
@@ -44,7 +45,7 @@
         </div>
     </div>
 
-    <div class="type">
+    <div class="field">
         <label class="label">Type</label>
         <div class="control">
             {{range .Types}}
@@ -59,6 +60,14 @@
             {{end}}
         </div>
     </div>
+
+    <div class="field">
+        <label class="label">Filters</label>
+        <a
+            class="button {{if $.URL.Current.CollectionOnly}}is-active is-primary{{end}}"
+            href="/?q={{$.URL.GetToggledCollectionOnlyJSON}}"
+        >Only show cards in collection</a>
+    </div>
 </div>
 
 <div class="section">
@@ -67,7 +76,7 @@
     <h3>{{$letter}}</h3>
     <div class="buttons">
         {{range $.FilteredGroups}} {{if (eq (slice .Name 0 1) $letter)}}
-        <a class="button" href="/?q={{$.URL.GetGroupJSON .Name}}">
+        <a class="button {{if gt .CardCollectionCount 0}}is-focused is-outlined is-primary{{end}}" href="/?q={{$.URL.GetGroupJSON .Name}}">
             <span>
                 {{range .Types}}
                 <i
@@ -80,13 +89,18 @@
                     {{end}}
                     "
                 ></i>
-                {{end}} {{.Name}}
+                {{end}}
+                {{.Name}}
+                {{if gt .CardCollectionCount 0}}
+                    <span class="tag is-primary">{{.CardCollectionCount}}</span>
+                {{end}}
             </span>
         </a>
         {{end}} {{end}}
     </div>
     {{end}}
 </div>
+{{end}}
 
 {{if .URL.Current.Group}}
 <div class="modal is-active">
@@ -112,8 +126,16 @@
             <div class="grid is-col-min-10">
                 {{range .FilteredCards}}
                 <div class="cell">
-                    <figure class="image">
-                        <img src="{{.MetadataObj.Images.Large}}" />
+                    <figure class="image" id="{{.PtcgID}}">
+                        {{if gt .CardCollectionCount 0}}
+                        <div class="tags has-addons" style="position: absolute; right: -5px; top: -5px;">
+                            <span class="tag is-primary is-medium">In Deck</span>
+                            <a href="/?q={{$.CurrentURL}}&action=increment&card_PtcgID={{.PtcgID}}&requestID={{$.RequestID}}#{{.PtcgID}}" class="tag is-primary is-light is-medium">{{.CardCollectionCount}}</a>
+                        </div>
+                        {{end}}
+                        <a href="/?q={{$.CurrentURL}}&action={{if gt .CardCollectionCount 0}}remove{{else}}add{{end}}&card_PtcgID={{.PtcgID}}&requestID={{$.RequestID}}#{{.PtcgID}}">
+                            <img src="{{.MetadataObj.Images.Large}}" />
+                        </a>
                     </figure>
                 </div>
                 {{end}}
@@ -129,6 +151,5 @@
         -->
     </div>
 </div>
-<!-- prettier-ignore -->
 {{end}}
 {{end}}

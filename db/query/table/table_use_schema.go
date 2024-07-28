@@ -11,7 +11,10 @@ package table
 // this method only once at the beginning of the program.
 func UseSchema(schema string) {
 	Card = Card.FromSchema(schema)
+	CardCollection = CardCollection.FromSchema(schema)
 	CardType = CardType.FromSchema(schema)
+	Collection = Collection.FromSchema(schema)
+	CollectionEnergy = CollectionEnergy.FromSchema(schema)
 	Group = Group.FromSchema(schema)
 	GroupType = GroupType.FromSchema(schema)
 	Supertype = Supertype.FromSchema(schema)
