@@ -1,7 +1,8 @@
 # Sensitive files
 .envrc
+data/data.db
 
 # Generated files
 tmp/
-dal/db
+db/query
 .task/checksum
