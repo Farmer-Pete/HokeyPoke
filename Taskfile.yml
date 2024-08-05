@@ -19,8 +19,6 @@ tasks:
     cmds:
       - goose up
       - jet -source=sqlite -dsn="$HOKEY_DB_FILE" -path=db/query
-    sources:
-      - db/migrations/*.sql
 
   db.backup:
     desc: Backup the database
